@@ -2,7 +2,7 @@ package edu.buffalo.cse.cse486586.simpledht;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.Formatter;
+import java.util.*;
 import java.net.*;
 import java.io.*;
 import java.util.concurrent.*;
@@ -14,8 +14,13 @@ import android.util.Log;
 
 public class SimpleDhtProvider extends ContentProvider {
 	
+	private myHelper myDb;
 	static final String TAG= "adil provider";
 	static final int recvPort= 10000;
+	static Vector<String> list = new Vector<String>();
+	static ExecutorService pool = Executors.newFixedThreadPool(3);
+	static String suc, predec;
+	
 	
     @Override
     public int delete(Uri uri, String selection, String[] selectionArgs) {
@@ -37,14 +42,15 @@ public class SimpleDhtProvider extends ContentProvider {
 
     @Override
     public boolean onCreate() {
-        // TODO Auto-generated method stub
-    	
+    	Log.v(TAG, "provider created");
+		myDb = new myHelper(getContext());
+		myDb.getWritableDatabase();
+    	/*
     	//Listener Thread
     	new Thread(new Runnable() {
         	public void run() {
         		Socket sock1= null;
         		ObjectInputStream in =null;
-        		ExecutorService te= Executors.newSingleThreadExecutor();
         		ServerSocket servSocket= null;
         		try {
 					servSocket= new ServerSocket(recvPort);
@@ -61,7 +67,7 @@ public class SimpleDhtProvider extends ContentProvider {
         				Message obj;
         				try {
 							obj = (Message) in.readObject();
-							te.execute(new Receiver(obj)); //replace where to send this object
+							pool.execute(new Receiver(obj)); //replace where to send this object
 						} catch (ClassNotFoundException e) {
 							Log.e(TAG, e.getMessage());
 						}
@@ -88,9 +94,43 @@ public class SimpleDhtProvider extends ContentProvider {
         		}
         	}
         }).start();
-        return false;
+    	
+    	Message j = new Message("join", SimpleDhtMainActivity.Node_id);
+    	pool.execute(new Send(j,11108));
+      */
+    	return true;
     }
-
+    
+    public static void onJoin(String n_id) {
+    	list.add(n_id);
+    	//ExecutorService e= Executors.newSingleThreadExecutor();
+    	for(String s: list) {
+    		int portAddr= getPortAddr(s);
+    		String[] nb= new String[2];
+    		int loc= list.indexOf(s);
+    		for(int i =0; i <=1; i++) {
+    			nb[i] = list.get((loc + i+1) % list.size());
+    		}
+    		Message msg= new Message("update",SimpleDhtMainActivity.Node_id ,nb);
+    		pool.execute(new Send(msg,portAddr));
+    	}
+    }
+    
+    public static int getPortAddr(String n_id) {
+    	if(n_id.equals("5554"))
+    		return 11108;
+    	else if(n_id.equals("5556"))
+    		return 11112;
+    	else if(n_id.equals("5558"))
+    		return 11116;
+    	return -1;
+    }
+    
+    public static void onUpdate(String[] a) {
+    	suc= a[0];
+    	predec = a[1];
+    }
+    
     @Override
     public Cursor query(Uri uri, String[] projection, String selection, String[] selectionArgs,
             String sortOrder) {
@@ -127,11 +167,11 @@ class Receiver implements Runnable {
 	
 	public void run() {
 		if (obj.id.equals("join")) {
-			
+			SimpleDhtProvider.onJoin(obj.Node_id);
 		}
 		if (obj.id.equals("update")) {
-			
+			SimpleDhtProvider.onUpdate(obj.nbors);
 		}
-		Log.i("adil executor", "recvd msg: ");
+		Log.i("adil executor", "recvd msg: "+ obj.Node_id);
 	}
 }

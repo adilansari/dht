@@ -51,6 +51,7 @@ public class SimpleDhtMainActivity extends Activity {
 					Log.d(TAG, "AVD portStr is neither 5554 nor 5556");
 			}        	
         }).start();
+          
     }
 
     @Override
