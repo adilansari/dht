@@ -19,7 +19,7 @@ public class SimpleDhtProvider extends ContentProvider {
 	private static final String AUTHORITY = "edu.buffalo.cse.cse486586.simpledht.provider";
 	private static final String BASE_PATH = myHelper.TABLE_NAME;
 	public static final Uri CONTENT_URI = Uri.parse("content://"+ AUTHORITY + "/" + BASE_PATH);
-	static Vector<String> list = new Vector<String>();
+	static LinkedList list = new LinkedList();
 	static ExecutorService pool = Executors.newFixedThreadPool(3);
 	static String suc, predec;
 	public static String Node_id;
@@ -61,16 +61,18 @@ public class SimpleDhtProvider extends ContentProvider {
     	if(!list.contains(n_id))
     		list.add(n_id);
     	//ExecutorService e= Executors.newSingleThreadExecutor();
-    	for(String s: list) {
+    	Node temp= list.root;
+    	do {
+    		String s= temp.data;
     		int portAddr= getPortAddr(s);
     		String[] nb= new String[2];
-    		int loc= list.indexOf(s);
-    		for(int i =0; i <=1; i++) {
-    			nb[i] = list.get((loc + i+1) % list.size());
-    		}
+    		Node loc= list.get(s);
+    		nb[0]= loc.prev.data;
+    		nb[1]= loc.next.data;
     		Message msg= new Message("update",SimpleDhtMainActivity.Node_id ,nb);
     		pool.execute(new Send(msg,portAddr));
-    	}
+    		temp=temp.next;
+    	} while(temp != list.root);
     }
     
     public static int getPortAddr(String n_id) {
@@ -86,7 +88,7 @@ public class SimpleDhtProvider extends ContentProvider {
     public static void onUpdate(String[] a) {
     	suc= a[0];
     	predec = a[1];
-    	Log.d(TAG, "successor"+suc+"predecessor"+predec);
+    	Log.d(TAG, "successor "+suc+" predecessor "+predec);
     }
     
     @Override
