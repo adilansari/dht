@@ -126,6 +126,12 @@ class Receiver implements Runnable {
 	}
 	
 	public void run() {
+		if (obj.id.equals("join")) {
+			
+		}
+		if (obj.id.equals("update")) {
+			
+		}
 		Log.i("adil executor", "recvd msg: ");
 	}
 }
