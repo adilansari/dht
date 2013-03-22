@@ -3,14 +3,20 @@ package edu.buffalo.cse.cse486586.simpledht;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Formatter;
-
+import java.net.*;
+import java.io.*;
+import java.util.concurrent.*;
 import android.content.ContentProvider;
 import android.content.ContentValues;
 import android.database.Cursor;
 import android.net.Uri;
+import android.util.Log;
 
 public class SimpleDhtProvider extends ContentProvider {
-
+	
+	static final String TAG= "adil provider";
+	static final int recvPort= 10000;
+	
     @Override
     public int delete(Uri uri, String selection, String[] selectionArgs) {
         // TODO Auto-generated method stub
@@ -32,6 +38,56 @@ public class SimpleDhtProvider extends ContentProvider {
     @Override
     public boolean onCreate() {
         // TODO Auto-generated method stub
+    	
+    	//Listener Thread
+    	new Thread(new Runnable() {
+        	public void run() {
+        		Socket sock1= null;
+        		ObjectInputStream in =null;
+        		ExecutorService te= Executors.newSingleThreadExecutor();
+        		ServerSocket servSocket= null;
+        		try {
+					servSocket= new ServerSocket(recvPort);
+					Log.v(TAG, "Server Socket port: "+Integer.toString(servSocket.getLocalPort()));
+				} catch (IOException e) {
+					Log.e(TAG, ""+e.getMessage());
+					e.printStackTrace();
+				}
+        		
+        		while(true) {
+        			try {
+        				sock1= servSocket.accept();
+        				in =new ObjectInputStream(sock1.getInputStream());
+        				Message obj;
+        				try {
+							obj = (Message) in.readObject();
+							te.execute(new Receiver(obj)); //replace where to send this object
+						} catch (ClassNotFoundException e) {
+							Log.e(TAG, e.getMessage());
+						}
+       				} 
+        			
+        			catch (IOException e) {
+        				Log.e(TAG, ""+e.getMessage());
+        				e.printStackTrace();
+        			}
+        			finally {
+        				if (in!= null)
+        					try {
+        						in.close();
+        					} catch (IOException e) {
+        						Log.e(TAG, ""+e.getMessage());
+        					}
+        				if(sock1!=null)
+        					try {
+        						sock1.close();
+        					} catch (IOException e) {
+        						Log.e(TAG, ""+e.getMessage());
+        					}	
+        			}
+        		}
+        	}
+        }).start();
         return false;
     }
 
@@ -56,5 +112,20 @@ public class SimpleDhtProvider extends ContentProvider {
             formatter.format("%02x", b);
         }
         return formatter.toString();
-    }
+    }  
+}
+
+class Receiver implements Runnable {
+
+	Socket sock= null;
+	Message obj;
+	ExecutorService e= Executors.newSingleThreadExecutor();
+	
+	Receiver (Message s) {
+		this.obj= s;
+	}
+	
+	public void run() {
+		Log.i("adil executor", "recvd msg: ");
+	}
 }
