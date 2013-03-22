@@ -16,7 +16,9 @@ public class SimpleDhtProvider extends ContentProvider {
 	
 	private myHelper myDb;
 	static final String TAG= "adil provider";
-	static final int recvPort= 10000;
+	private static final String AUTHORITY = "edu.buffalo.cse.cse486586.simpledht.provider";
+	private static final String BASE_PATH = myHelper.TABLE_NAME;
+	public static final Uri CONTENT_URI = Uri.parse("content://"+ AUTHORITY + "/" + BASE_PATH);
 	static Vector<String> list = new Vector<String>();
 	static ExecutorService pool = Executors.newFixedThreadPool(3);
 	static String suc, predec;
@@ -45,59 +47,14 @@ public class SimpleDhtProvider extends ContentProvider {
     	Log.v(TAG, "provider created");
 		myDb = new myHelper(getContext());
 		myDb.getWritableDatabase();
-    	/*
-    	//Listener Thread
-    	new Thread(new Runnable() {
-        	public void run() {
-        		Socket sock1= null;
-        		ObjectInputStream in =null;
-        		ServerSocket servSocket= null;
-        		try {
-					servSocket= new ServerSocket(recvPort);
-					Log.v(TAG, "Server Socket port: "+Integer.toString(servSocket.getLocalPort()));
-				} catch (IOException e) {
-					Log.e(TAG, ""+e.getMessage());
-					e.printStackTrace();
-				}
-        		
-        		while(true) {
-        			try {
-        				sock1= servSocket.accept();
-        				in =new ObjectInputStream(sock1.getInputStream());
-        				Message obj;
-        				try {
-							obj = (Message) in.readObject();
-							pool.execute(new Receiver(obj)); //replace where to send this object
-						} catch (ClassNotFoundException e) {
-							Log.e(TAG, e.getMessage());
-						}
-       				} 
-        			
-        			catch (IOException e) {
-        				Log.e(TAG, ""+e.getMessage());
-        				e.printStackTrace();
-        			}
-        			finally {
-        				if (in!= null)
-        					try {
-        						in.close();
-        					} catch (IOException e) {
-        						Log.e(TAG, ""+e.getMessage());
-        					}
-        				if(sock1!=null)
-        					try {
-        						sock1.close();
-        					} catch (IOException e) {
-        						Log.e(TAG, ""+e.getMessage());
-        					}	
-        			}
-        		}
-        	}
-        }).start();
     	
-    	Message j = new Message("join", SimpleDhtMainActivity.Node_id);
-    	pool.execute(new Send(j,11108));
-      */
+    	
+		ExecutorService e= Executors.newSingleThreadExecutor();
+		e.execute(new Listener());
+		
+		//Message j = new Message("join", SimpleDhtMainActivity.Node_id);
+    	//pool.execute(new Send(j,11108));
+      
     	return true;
     }
     
@@ -159,7 +116,7 @@ class Receiver implements Runnable {
 
 	Socket sock= null;
 	Message obj;
-	ExecutorService e= Executors.newSingleThreadExecutor();
+	//ExecutorService e= Executors.newSingleThreadExecutor();
 	
 	Receiver (Message s) {
 		this.obj= s;
@@ -172,6 +129,59 @@ class Receiver implements Runnable {
 		if (obj.id.equals("update")) {
 			SimpleDhtProvider.onUpdate(obj.nbors);
 		}
-		Log.i("adil executor", "recvd msg: "+ obj.Node_id);
+		Log.i("adil rcvr", "recvd msg: "+ obj.Node_id);
+	}
+}
+
+class Listener implements Runnable {
+	
+	static final String TAG = "adil listen";
+	static final int recvPort= 10000;
+	//ExecutorService e= Executors.newSingleThreadExecutor();
+	
+	public void run() {
+		Socket sock1= null;
+		ObjectInputStream in =null;
+		ServerSocket servSocket= null;
+		try {
+			servSocket= new ServerSocket(recvPort);
+			Log.v(TAG, "Server Socket port: "+Integer.toString(servSocket.getLocalPort()));
+		} catch (IOException e) {
+			Log.e(TAG, ""+e.getMessage());
+			e.printStackTrace();
+		}
+		
+		while(true) {
+			try {
+				sock1= servSocket.accept();
+				in =new ObjectInputStream(sock1.getInputStream());
+				Message obj;
+				try {
+					obj = (Message) in.readObject();
+					SimpleDhtProvider.pool.execute(new Receiver(obj)); //replace where to send this object
+				} catch (ClassNotFoundException e) {
+					Log.e(TAG, e.getMessage());
+				}
+			} 
+			
+			catch (IOException e) {
+				Log.e(TAG, ""+e.getMessage());
+				e.printStackTrace();
+			}
+			finally {
+				if (in!= null)
+					try {
+						in.close();
+					} catch (IOException e) {
+						Log.e(TAG, ""+e.getMessage());
+					}
+				if(sock1!=null)
+					try {
+						sock1.close();
+					} catch (IOException e) {
+						Log.e(TAG, ""+e.getMessage());
+					}	
+			}
+		}
 	}
 }
