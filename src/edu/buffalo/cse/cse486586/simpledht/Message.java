@@ -1,7 +1,6 @@
 package edu.buffalo.cse.cse486586.simpledht;
 
 import java.io.*;
-
 import android.util.Log;
 
 public class Message implements Serializable {
@@ -15,7 +14,7 @@ public class Message implements Serializable {
 	Message(String id, String Node_id) {
 		this.id= id;
 		this.Node_id= Node_id;
-		Log.v("adil sender", Node_id);
+		//Log.v("adil sender", Node_id);
 	}
 	
 	//for successor/predecessor 'update'

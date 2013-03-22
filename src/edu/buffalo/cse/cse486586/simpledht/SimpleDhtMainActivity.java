@@ -26,31 +26,11 @@ public class SimpleDhtMainActivity extends Activity {
         findViewById(R.id.button3).setOnClickListener(
                 new OnTestClickListener(tv, getContentResolver()));
         
-        new Thread(new Runnable() {
-			public void run() {
+        		
 		    	String portStr = get_portStr();
 		    	Node_id = portStr;
-		    	Log.v(TAG, portStr);
-
-				if(portStr.equals("5554")) {
-					avd_name= "avd0";
-					avd_number= 0;
-					avd_port= 11108;					
-				}
-				else if(portStr.equals("5556")) {
-					avd_name= "avd1";
-					avd_number=1;
-					avd_port= 11112;
-				}
-				else if(portStr.equals("5558")) {
-					avd_name= "avd2";
-					avd_number= 2;
-					avd_port= 11116;
-				}
-				else
-					Log.d(TAG, "AVD portStr is neither 5554 nor 5556");
-			}        	
-        }).start();
+		    	Message j = new Message("join", Node_id);
+		    	SimpleDhtProvider.pool.execute(new Send(j,11108));
           
     }
 

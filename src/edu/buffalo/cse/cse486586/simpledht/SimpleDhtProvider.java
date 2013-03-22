@@ -22,7 +22,7 @@ public class SimpleDhtProvider extends ContentProvider {
 	static Vector<String> list = new Vector<String>();
 	static ExecutorService pool = Executors.newFixedThreadPool(3);
 	static String suc, predec;
-	
+	public static String Node_id;
 	
     @Override
     public int delete(Uri uri, String selection, String[] selectionArgs) {
@@ -52,14 +52,14 @@ public class SimpleDhtProvider extends ContentProvider {
 		ExecutorService e= Executors.newSingleThreadExecutor();
 		e.execute(new Listener());
 		
-		//Message j = new Message("join", SimpleDhtMainActivity.Node_id);
-    	//pool.execute(new Send(j,11108));
+		
       
     	return true;
     }
     
     public static void onJoin(String n_id) {
-    	list.add(n_id);
+    	if(!list.contains(n_id))
+    		list.add(n_id);
     	//ExecutorService e= Executors.newSingleThreadExecutor();
     	for(String s: list) {
     		int portAddr= getPortAddr(s);
@@ -86,6 +86,7 @@ public class SimpleDhtProvider extends ContentProvider {
     public static void onUpdate(String[] a) {
     	suc= a[0];
     	predec = a[1];
+    	Log.d(TAG, "successor"+suc+"predecessor"+predec);
     }
     
     @Override
