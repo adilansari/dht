@@ -24,7 +24,7 @@ public class SimpleDhtProvider extends ContentProvider {
 	public static final Uri CONTENT_URI = Uri.parse("content://"+ AUTHORITY + "/" + BASE_PATH);
 	static LinkedList list;
 	static SortedMap<String, String> map;
-	static ExecutorService pool = Executors.newFixedThreadPool(3);
+	static ExecutorService pool = Executors.newFixedThreadPool(5);
 	static String suc, predec;
 	static boolean flag=false;
 	//public static String Node_id;
@@ -44,32 +44,40 @@ public class SimpleDhtProvider extends ContentProvider {
    
     public Uri insert(Uri uri, ContentValues values) {
     	//pass on algorithm here
-    	db = myDb.getWritableDatabase();
-		String hashKey,hashNode,hashPre;
-		long rowId;
+    	final ContentValues v = new ContentValues(values);
+    	
+    	pool.execute(new Runnable() {
+    		public void run() {
+    			db = myDb.getWritableDatabase();
+    			String hashKey,hashNode,hashPre;
+    			long rowId;
+    			String key =v.keySet().iterator().next();
 		
-		try {
-			hashKey = values.keySet().iterator().next();
-			hashNode = genHash(SimpleDhtMainActivity.Node_id);
-			hashPre= genHash(predec);
+    			try {
+    				hashKey = genHash(key);
+    				hashNode = genHash(SimpleDhtMainActivity.Node_id);
+    				hashPre= genHash(predec);
 		
-			if(hashKey.compareTo(hashNode) <= 0 && hashKey.compareTo(hashPre) > 0)
-				rowId= db.replace(myHelper.TABLE_NAME, myHelper.VALUE_FIELD, values);
-			else if(flag) {
-				rowId= db.replace(myHelper.TABLE_NAME, myHelper.VALUE_FIELD, values);
-				flag= !flag;
-			}
-			else {
-				String firstNode= map.get(map.firstKey());
-				if(SimpleDhtMainActivity.Node_id.equals(firstNode))
-					flag = !flag;
-				Message obj = new Message("insert",values);
-				pool.execute(new Send(obj, getPortAddr(suc)));
-			}	
-		} catch (NoSuchAlgorithmException e) {
-			Log.e(TAG,e.getMessage());
-		}
-		
+    				if(hashKey.compareTo(hashNode) <= 0 && hashKey.compareTo(hashPre) > 0)
+    					rowId= db.replace(myHelper.TABLE_NAME, myHelper.VALUE_FIELD, v);
+    				/*else if(flag) {
+    					rowId= db.replace(myHelper.TABLE_NAME, myHelper.VALUE_FIELD, v);
+    					flag= !flag;
+    				}*/
+    				else {
+    					String firstNode= map.get(map.firstKey());
+    					if(SimpleDhtMainActivity.Node_id.equals(firstNode))
+    						flag = !flag;
+    					
+    					String[] pair = {key, (String)v.get(key)};
+    					Message obj = new Message("insert",pair);
+    					new Send(obj, getPortAddr(suc));
+    				}	
+    			} catch (NoSuchAlgorithmException e) {
+    				Log.e(TAG,e.getMessage());
+    			}
+    		}
+    	});
 			
 		//main insertion done here
     	
@@ -83,6 +91,7 @@ public class SimpleDhtProvider extends ContentProvider {
 			Log.e(TAG, "Insert to db failed");
 		}*/
 		return null;
+    	
     }
 
     @Override
@@ -188,6 +197,7 @@ class Receiver implements Runnable {
 	}
 	
 	public void run() {
+		Log.i("adil rcvr", "recvd msg: "+ obj.Node_id + obj.id);
 		if (obj.id.equals("join")) {
 			SimpleDhtProvider.onJoin(obj.Node_id);
 		}
@@ -195,9 +205,11 @@ class Receiver implements Runnable {
 			SimpleDhtProvider.onUpdate(obj.nbors);
 		}
 		else if (obj.id.equals("insert")) {
-			SimpleDhtMainActivity.mContentResolver.insert(SimpleDhtProvider.CONTENT_URI, obj.cv);
+			ContentValues val = new ContentValues();
+			val.put(myHelper.KEY_FIELD, obj.cv[0]);
+			val.put(myHelper.VALUE_FIELD, obj.cv[1]);
+			SimpleDhtMainActivity.mContentResolver.insert(SimpleDhtProvider.CONTENT_URI, val);
 		}
-		Log.i("adil rcvr", "recvd msg: "+ obj.Node_id + obj.id);
 	}
 }
 
@@ -205,7 +217,7 @@ class Listener implements Runnable {
 	
 	static final String TAG = "adil listen";
 	static final int recvPort= 10000;
-	//ExecutorService e= Executors.newSingleThreadExecutor();
+	ExecutorService e= Executors.newSingleThreadExecutor();
 	
 	public void run() {
 		Socket sock1= null;
@@ -226,7 +238,7 @@ class Listener implements Runnable {
 				Message obj;
 				try {
 					obj = (Message) in.readObject();
-					SimpleDhtProvider.pool.execute(new Receiver(obj)); //replace where to send this object
+					e.execute(new Receiver(obj)); //replace where to send this object
 				} catch (ClassNotFoundException e) {
 					Log.e(TAG, e.getMessage());
 				}

@@ -11,7 +11,7 @@ public class Message implements Serializable {
 	String id;
 	String Node_id;
 	String[] nbors;
-	ContentValues cv;
+	String cv[];
 	
 	// for 'join' message only
 	Message(String id, String Node_id) {
@@ -29,7 +29,7 @@ public class Message implements Serializable {
 	
 	//insert message
 	
-	Message(String id, ContentValues cv) {
+	Message(String id, String[] cv) {
 		this.id= id;
 		this.cv = cv;
 	}
