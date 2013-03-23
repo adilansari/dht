@@ -22,7 +22,8 @@ public class SimpleDhtProvider extends ContentProvider {
 	private static final String AUTHORITY = "edu.buffalo.cse.cse486586.simpledht.provider";
 	private static final String BASE_PATH = myHelper.TABLE_NAME;
 	public static final Uri CONTENT_URI = Uri.parse("content://"+ AUTHORITY + "/" + BASE_PATH);
-	static LinkedList list = new LinkedList();
+	static LinkedList list;
+	static SortedMap<String, String> map;
 	static ExecutorService pool = Executors.newFixedThreadPool(3);
 	static String suc, predec;
 	//public static String Node_id;
@@ -41,9 +42,13 @@ public class SimpleDhtProvider extends ContentProvider {
 
    
     public Uri insert(Uri uri, ContentValues values) {
+    	//pass on algorithm here
     	db = myDb.getWritableDatabase();
 		ContentValues v= new ContentValues(values);
-		long rowId= db.replace(myHelper.TABLE_NAME, myHelper.VALUE_FIELD, v);
+		
+		
+    	//main insertion done here
+    	long rowId= db.replace(myHelper.TABLE_NAME, myHelper.VALUE_FIELD, v);
 		if (rowId > 0) {
 			Uri newUri = ContentUris.withAppendedId(CONTENT_URI, rowId);
 			getContext().getContentResolver().notifyChange(newUri, null);
@@ -59,6 +64,7 @@ public class SimpleDhtProvider extends ContentProvider {
     @Override
     public boolean onCreate() {
     	Log.v(TAG, "provider created");
+    	map=new TreeMap<String, String>();
 		myDb = new myHelper(getContext());
 		myDb.getWritableDatabase();
     	
@@ -72,8 +78,20 @@ public class SimpleDhtProvider extends ContentProvider {
     }
     
     public static void onJoin(String n_id) {
-    	if(!list.contains(n_id))
-    		list.add(n_id);
+    	if(!map.containsValue(n_id))
+			try {
+				String h=new SimpleDhtProvider().genHash(n_id); 
+				map.put(h, n_id);
+				Log.v(TAG, "inserted "+n_id+" hash "+h);
+			} catch (NoSuchAlgorithmException e) {
+				Log.e(TAG,e.getMessage());
+			}
+    	
+    	list = new LinkedList();
+    	for(Map.Entry<String, String> entry: map.entrySet()) {
+    		list.add(entry.getValue());
+    	}
+    	
     	//ExecutorService e= Executors.newSingleThreadExecutor();
     	Node temp= list.root;
     	do {
