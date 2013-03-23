@@ -71,9 +71,7 @@ public class SimpleDhtProvider extends ContentProvider {
     	
 		ExecutorService e= Executors.newSingleThreadExecutor();
 		e.execute(new Listener());
-		
-		
-      
+		      
     	return true;
     }
     
