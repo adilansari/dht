@@ -18,7 +18,7 @@ public class SimpleDhtMainActivity extends Activity {
 	static String Node_id;
 	String TAG= "adil";
 	static int avd_port;
-	private ContentResolver mContentResolver;
+	static ContentResolver mContentResolver;
 	private Handler uiHandle= new Handler();
 	
     @Override

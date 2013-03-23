@@ -1,6 +1,8 @@
 package edu.buffalo.cse.cse486586.simpledht;
 
 import java.io.*;
+
+import android.content.ContentValues;
 import android.util.Log;
 
 public class Message implements Serializable {
@@ -9,6 +11,7 @@ public class Message implements Serializable {
 	String id;
 	String Node_id;
 	String[] nbors;
+	ContentValues cv;
 	
 	// for 'join' message only
 	Message(String id, String Node_id) {
@@ -22,6 +25,13 @@ public class Message implements Serializable {
 		this.id = id;
 		this.nbors = nbors;
 		this.Node_id= Node_id;
+	}
+	
+	//insert message
+	
+	Message(String id, ContentValues cv) {
+		this.id= id;
+		this.cv = cv;
 	}
 
 }

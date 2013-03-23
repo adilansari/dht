@@ -26,6 +26,7 @@ public class SimpleDhtProvider extends ContentProvider {
 	static SortedMap<String, String> map;
 	static ExecutorService pool = Executors.newFixedThreadPool(3);
 	static String suc, predec;
+	static boolean flag=false;
 	//public static String Node_id;
 	
     @Override
@@ -44,12 +45,35 @@ public class SimpleDhtProvider extends ContentProvider {
     public Uri insert(Uri uri, ContentValues values) {
     	//pass on algorithm here
     	db = myDb.getWritableDatabase();
-		ContentValues v= new ContentValues(values);
+		String hashKey,hashNode,hashPre;
+		long rowId;
 		
+		try {
+			hashKey = values.keySet().iterator().next();
+			hashNode = genHash(SimpleDhtMainActivity.Node_id);
+			hashPre= genHash(predec);
 		
-    	//main insertion done here
-    	long rowId= db.replace(myHelper.TABLE_NAME, myHelper.VALUE_FIELD, v);
-		if (rowId > 0) {
+			if(hashKey.compareTo(hashNode) <= 0 && hashKey.compareTo(hashPre) > 0)
+				rowId= db.replace(myHelper.TABLE_NAME, myHelper.VALUE_FIELD, values);
+			else if(flag) {
+				rowId= db.replace(myHelper.TABLE_NAME, myHelper.VALUE_FIELD, values);
+				flag= !flag;
+			}
+			else {
+				String firstNode= map.get(map.firstKey());
+				if(SimpleDhtMainActivity.Node_id.equals(firstNode))
+					flag = !flag;
+				Message obj = new Message("insert",values);
+				pool.execute(new Send(obj, getPortAddr(suc)));
+			}	
+		} catch (NoSuchAlgorithmException e) {
+			Log.e(TAG,e.getMessage());
+		}
+		
+			
+		//main insertion done here
+    	
+		/*if (rowId > 0) {
 			Uri newUri = ContentUris.withAppendedId(CONTENT_URI, rowId);
 			getContext().getContentResolver().notifyChange(newUri, null);
 			//Log.i(TAG, "Insertion success # " + Long.toString(rowId));
@@ -57,7 +81,7 @@ public class SimpleDhtProvider extends ContentProvider {
 		}
 		else {
 			Log.e(TAG, "Insert to db failed");
-		}
+		}*/
 		return null;
     }
 
@@ -127,6 +151,7 @@ public class SimpleDhtProvider extends ContentProvider {
     	
     	db= myDb.getReadableDatabase();
     	Cursor c;
+    	//c= db.query(myHelper.TABLE_NAME, new String[]{myHelper.KEY_FIELD,myHelper.VALUE_FIELD}, "key = ?", new String[]{selection}, null, null, null);
     	if(selection != null)
     		c= db.rawQuery("select * from "+myHelper.TABLE_NAME+" where key like '"+selection+"'", null);
     	else
@@ -166,8 +191,11 @@ class Receiver implements Runnable {
 		if (obj.id.equals("join")) {
 			SimpleDhtProvider.onJoin(obj.Node_id);
 		}
-		if (obj.id.equals("update")) {
+		else if (obj.id.equals("update")) {
 			SimpleDhtProvider.onUpdate(obj.nbors);
+		}
+		else if (obj.id.equals("insert")) {
+			SimpleDhtMainActivity.mContentResolver.insert(SimpleDhtProvider.CONTENT_URI, obj.cv);
 		}
 		Log.i("adil rcvr", "recvd msg: "+ obj.Node_id + obj.id);
 	}
