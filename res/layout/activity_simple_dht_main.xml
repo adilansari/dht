@@ -10,7 +10,8 @@
         android:layout_height="wrap_content"
         android:layout_alignParentLeft="true"
         android:layout_alignParentTop="true"
-        android:text="@string/button_ldump" />
+        android:text="@string/button_ldump"
+        android:onClick="LDump" />
 
     <Button
         android:id="@+id/button2"

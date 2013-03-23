@@ -7,14 +7,17 @@ import java.net.*;
 import java.io.*;
 import java.util.concurrent.*;
 import android.content.ContentProvider;
+import android.content.ContentUris;
 import android.content.ContentValues;
 import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
 import android.util.Log;
 
 public class SimpleDhtProvider extends ContentProvider {
 	
 	private myHelper myDb;
+	private SQLiteDatabase db;
 	static final String TAG= "adil provider";
 	private static final String AUTHORITY = "edu.buffalo.cse.cse486586.simpledht.provider";
 	private static final String BASE_PATH = myHelper.TABLE_NAME;
@@ -22,7 +25,7 @@ public class SimpleDhtProvider extends ContentProvider {
 	static LinkedList list = new LinkedList();
 	static ExecutorService pool = Executors.newFixedThreadPool(3);
 	static String suc, predec;
-	public static String Node_id;
+	//public static String Node_id;
 	
     @Override
     public int delete(Uri uri, String selection, String[] selectionArgs) {
@@ -36,10 +39,21 @@ public class SimpleDhtProvider extends ContentProvider {
         return null;
     }
 
-    @Override
+   
     public Uri insert(Uri uri, ContentValues values) {
-        // TODO Auto-generated method stub
-        return null;
+    	db = myDb.getWritableDatabase();
+		ContentValues v= new ContentValues(values);
+		long rowId= db.replace(myHelper.TABLE_NAME, myHelper.VALUE_FIELD, v);
+		if (rowId > 0) {
+			Uri newUri = ContentUris.withAppendedId(CONTENT_URI, rowId);
+			getContext().getContentResolver().notifyChange(newUri, null);
+			//Log.i(TAG, "Insertion success # " + Long.toString(rowId));
+			return newUri;
+		}
+		else {
+			Log.e(TAG, "Insert to db failed");
+		}
+		return null;
     }
 
     @Override
@@ -94,8 +108,15 @@ public class SimpleDhtProvider extends ContentProvider {
     @Override
     public Cursor query(Uri uri, String[] projection, String selection, String[] selectionArgs,
             String sortOrder) {
-        // TODO Auto-generated method stub
-        return null;
+    	
+    	db= myDb.getReadableDatabase();
+    	Cursor c;
+    	if(selection != null)
+    		c= db.rawQuery("select * from "+myHelper.TABLE_NAME+" where key like '"+selection+"'", null);
+    	else
+    		c= db.rawQuery("select * from "+myHelper.TABLE_NAME, null);
+    	
+		return c;
     }
 
     @Override
@@ -132,7 +153,7 @@ class Receiver implements Runnable {
 		if (obj.id.equals("update")) {
 			SimpleDhtProvider.onUpdate(obj.nbors);
 		}
-		Log.i("adil rcvr", "recvd msg: "+ obj.Node_id);
+		Log.i("adil rcvr", "recvd msg: "+ obj.Node_id + obj.id);
 	}
 }
 

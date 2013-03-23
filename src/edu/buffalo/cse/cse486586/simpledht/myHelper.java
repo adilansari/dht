@@ -36,11 +36,11 @@ public class myHelper extends SQLiteOpenHelper {
 		 arg0.execSQL("DROP TABLE IF EXISTS " + TABLE_NAME);
 		 onCreate(arg0);
 	}
-/*
+
 	public static void insertPair(String key, String value, ContentResolver c) {
 		ContentValues keyValuesToInsert= new ContentValues();
 		keyValuesToInsert.put(myHelper.KEY_FIELD, key);
 		keyValuesToInsert.put(myHelper.VALUE_FIELD, value);
 		c.insert(SimpleDhtProvider.CONTENT_URI, keyValuesToInsert);
-	}*/
+	}
 }
