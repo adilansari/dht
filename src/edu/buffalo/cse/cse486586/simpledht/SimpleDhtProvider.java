@@ -46,12 +46,12 @@ public class SimpleDhtProvider extends ContentProvider {
     	//pass on algorithm here
     	final ContentValues v = new ContentValues(values);
     	
-    	pool.execute(new Runnable() {
-    		public void run() {
+//    	pool.execute(new Runnable() {
+//    		public void run() {
     			db = myDb.getWritableDatabase();
     			String hashKey,hashNode,hashPre;
-    			long rowId;
-    			String key =v.keySet().iterator().next();
+    			long rowId=1;
+    			String key =(String) v.get(myHelper.KEY_FIELD);
 		
     			try {
     				hashKey = genHash(key);
@@ -69,29 +69,24 @@ public class SimpleDhtProvider extends ContentProvider {
     					if(SimpleDhtMainActivity.Node_id.equals(firstNode))
     						flag = !flag;
     					
-    					String[] pair = {key, (String)v.get(key)};
+    					String[] pair = {key, (String)v.get(myHelper.VALUE_FIELD)};
     					Message obj = new Message("insert",pair);
-    					new Send(obj, getPortAddr(suc));
+    					pool.execute(new Send(obj, getPortAddr(suc)));
     				}	
     			} catch (NoSuchAlgorithmException e) {
     				Log.e(TAG,e.getMessage());
     			}
-    		}
-    	});
-			
-		//main insertion done here
-    	
-		/*if (rowId > 0) {
-			Uri newUri = ContentUris.withAppendedId(CONTENT_URI, rowId);
-			getContext().getContentResolver().notifyChange(newUri, null);
-			//Log.i(TAG, "Insertion success # " + Long.toString(rowId));
-			return newUri;
-		}
-		else {
-			Log.e(TAG, "Insert to db failed");
-		}*/
-		return null;
-    	
+
+    			if (rowId > 0) {
+    				Uri newUri = ContentUris.withAppendedId(CONTENT_URI, rowId);
+    				getContext().getContentResolver().notifyChange(newUri, null);
+    				//Log.i(TAG, "Insertion success # " + Long.toString(rowId));
+    				return newUri;
+    			}
+    			else {
+    				Log.e(TAG, "Insert to db failed");
+    				return null;
+    			}   	
     }
 
     @Override
