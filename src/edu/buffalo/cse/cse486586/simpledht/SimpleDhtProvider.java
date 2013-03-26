@@ -24,9 +24,10 @@ public class SimpleDhtProvider extends ContentProvider {
 	public static final Uri CONTENT_URI = Uri.parse("content://"+ AUTHORITY + "/" + BASE_PATH);
 	static LinkedList list;
 	static SortedMap<String, String> map;
-	static ExecutorService pool = Executors.newFixedThreadPool(5);
+	static ExecutorService pool = Executors.newSingleThreadExecutor();
 	static String suc, predec;
 	static boolean flag=false;
+	public static Socket socket;
 	//public static String Node_id;
 	
     @Override
@@ -45,9 +46,7 @@ public class SimpleDhtProvider extends ContentProvider {
     public Uri insert(Uri uri, ContentValues values) {
     	//pass on algorithm here
     	final ContentValues v = new ContentValues(values);
-    	
-//    	pool.execute(new Runnable() {
-//    		public void run() {
+
     			db = myDb.getWritableDatabase();
     			String hashKey,hashNode,hashPre;
     			long rowId=1;
@@ -185,25 +184,51 @@ class Receiver implements Runnable {
 
 	Socket sock= null;
 	Message obj;
-	//ExecutorService e= Executors.newSingleThreadExecutor();
+	ObjectInputStream in =null;
+	static final String TAG = "adil rcvr";
 	
-	Receiver (Message s) {
-		this.obj= s;
+	Receiver (Socket s) {
+		this.sock= s;
 	}
 	
 	public void run() {
-		Log.i("adil rcvr", "recvd msg: "+ obj.Node_id + obj.id);
-		if (obj.id.equals("join")) {
-			SimpleDhtProvider.onJoin(obj.Node_id);
-		}
-		else if (obj.id.equals("update")) {
-			SimpleDhtProvider.onUpdate(obj.nbors);
-		}
-		else if (obj.id.equals("insert")) {
-			ContentValues val = new ContentValues();
-			val.put(myHelper.KEY_FIELD, obj.cv[0]);
-			val.put(myHelper.VALUE_FIELD, obj.cv[1]);
-			SimpleDhtMainActivity.mContentResolver.insert(SimpleDhtProvider.CONTENT_URI, val);
+		try {
+			in =new ObjectInputStream(sock.getInputStream());
+			obj = (Message) in.readObject();
+			
+			Log.i(TAG, "recvd msg: "+ obj.Node_id + obj.id);
+			
+			if (obj.id.equals("join")) {
+				SimpleDhtProvider.onJoin(obj.Node_id);
+			}
+			else if (obj.id.equals("update")) {
+				SimpleDhtProvider.onUpdate(obj.nbors);
+			}
+			else if (obj.id.equals("insert")) {
+				ContentValues val = new ContentValues();
+				val.put(myHelper.KEY_FIELD, obj.cv[0]);
+				val.put(myHelper.VALUE_FIELD, obj.cv[1]);
+				SimpleDhtMainActivity.mContentResolver.insert(SimpleDhtProvider.CONTENT_URI, val);
+			}
+		} catch (ClassNotFoundException e) {
+			Log.e(TAG, ""+e.getMessage());
+		} catch (StreamCorruptedException e) {
+			Log.e(TAG, ""+e.getMessage());
+		} catch (IOException e) {
+			Log.e(TAG, ""+e.getMessage());
+		} finally {
+			if (in!= null)
+				try {
+					in.close();
+				} catch (IOException e) {
+					Log.e(TAG, ""+e.getMessage());
+				}
+			if(sock!=null)
+				try {
+					sock.close();
+				} catch (IOException e) {
+					Log.e(TAG, ""+e.getMessage());
+				}	
 		}
 	}
 }
@@ -216,7 +241,6 @@ class Listener implements Runnable {
 	
 	public void run() {
 		Socket sock1= null;
-		ObjectInputStream in =null;
 		ServerSocket servSocket= null;
 		try {
 			servSocket= new ServerSocket(recvPort);
@@ -229,33 +253,9 @@ class Listener implements Runnable {
 		while(true) {
 			try {
 				sock1= servSocket.accept();
-				in =new ObjectInputStream(sock1.getInputStream());
-				Message obj;
-				try {
-					obj = (Message) in.readObject();
-					e.execute(new Receiver(obj)); //replace where to send this object
-				} catch (ClassNotFoundException e) {
-					Log.e(TAG, e.getMessage());
-				}
-			} 
-			
-			catch (IOException e) {
+				e.execute(new Receiver(sock1)); //replace where to send this object
+			} catch (IOException e) {
 				Log.e(TAG, ""+e.getMessage());
-				e.printStackTrace();
-			}
-			finally {
-				if (in!= null)
-					try {
-						in.close();
-					} catch (IOException e) {
-						Log.e(TAG, ""+e.getMessage());
-					}
-				if(sock1!=null)
-					try {
-						sock1.close();
-					} catch (IOException e) {
-						Log.e(TAG, ""+e.getMessage());
-					}	
 			}
 		}
 	}
