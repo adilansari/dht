@@ -45,7 +45,7 @@ public class Message implements Serializable {
 	Message (String id, String selection, String sortOrder){
 		this.id = id;
 		this.selection = selection;
-		this.selection = sortOrder;
+		this.sortOrder = sortOrder;
 		this.Node_id = SimpleDhtMainActivity.Node_id;
 	}
 	

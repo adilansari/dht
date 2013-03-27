@@ -165,7 +165,7 @@ public class SimpleDhtProvider extends ContentProvider {
     	if(selection != null) {
     		c= db.rawQuery("select * from "+myHelper.TABLE_NAME+" where key like '"+selection+"'", null);
     		String val = null;
-    		if (!c.moveToFirst() || c.getCount()<=0) {
+    		if (c.getCount()<=0) {
     			//if(!query_flag) {	
     				Message q = new Message("query", selection, sortOrder);
     				pool.execute(new Send(q, getPortAddr(suc)));
@@ -203,7 +203,7 @@ public class SimpleDhtProvider extends ContentProvider {
     	else {
     		c= db.rawQuery("select * from "+myHelper.TABLE_NAME, null);
     	}
-		return c;
+		return mc;
     }
 
     @Override
