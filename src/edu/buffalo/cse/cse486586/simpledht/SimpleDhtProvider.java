@@ -10,6 +10,7 @@ import android.content.ContentProvider;
 import android.content.ContentUris;
 import android.content.ContentValues;
 import android.database.Cursor;
+import android.database.MatrixCursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
 import android.util.Log;
@@ -26,9 +27,9 @@ public class SimpleDhtProvider extends ContentProvider {
 	static SortedMap<String, String> map;
 	static ExecutorService pool = Executors.newFixedThreadPool(2);
 	static String suc, predec, leader;
-	static boolean loop_flag=false, ins_flag =false;
+	static boolean query_flag=false, ins_flag =false;
 	public static BlockingQueue<Long> bq = new LinkedBlockingQueue<Long>(1);
-	
+	public static BlockingQueue<String> bq2 = new LinkedBlockingQueue<String>(1);
 	
     public int delete(Uri uri, String selection, String[] selectionArgs) {
         return 0;
@@ -159,12 +160,49 @@ public class SimpleDhtProvider extends ContentProvider {
     	
     	db= myDb.getReadableDatabase();
     	Cursor c;
-    	//c= db.query(myHelper.TABLE_NAME, new String[]{myHelper.KEY_FIELD,myHelper.VALUE_FIELD}, "key = ?", new String[]{selection}, null, null, null);
-    	if(selection != null)
-    		c= db.rawQuery("select * from "+myHelper.TABLE_NAME+" where key like '"+selection+"'", null);
-    	else
-    		c= db.rawQuery("select * from "+myHelper.TABLE_NAME, null);
+    	MatrixCursor mc = null;
     	
+    	if(selection != null) {
+    		c= db.rawQuery("select * from "+myHelper.TABLE_NAME+" where key like '"+selection+"'", null);
+    		String val = null;
+    		if (!c.moveToFirst() || c.getCount()<=0) {
+    			//if(!query_flag) {	
+    				Message q = new Message("query", selection, sortOrder);
+    				pool.execute(new Send(q, getPortAddr(suc)));
+    				try {
+						val = bq2.take();
+						bq2.clear();
+					} catch (InterruptedException e) {
+						e.printStackTrace();
+					}
+    			//} else {
+    				//the key doesn't exist in the dht, return null
+    			//}
+    		} else {
+    			int colIndex = c.getColumnIndex(myHelper.VALUE_FIELD);
+    			c.moveToFirst();
+    			val = c.getString(colIndex);
+    		}
+    		
+    		if (query_flag) {
+    			Message r = new Message("q_reply", val);
+        		pool.execute(new Send(r, getPortAddr(predec)));
+    			query_flag = false;	
+    		}
+    		
+    		mc = new MatrixCursor(new String[]{myHelper.KEY_FIELD,myHelper.VALUE_FIELD});
+    		//mc.addRow(new String[]{selection,val});
+    		mc.newRow().add(selection).add(val);
+    		System.out.print(false);
+    	//build a matrix cursor to be returned
+    	}
+    	else if( selection == null && sortOrder.equals("local")) {
+    		c= db.rawQuery("select * from "+myHelper.TABLE_NAME, null);
+    		return c;
+    	}
+    	else {
+    		c= db.rawQuery("select * from "+myHelper.TABLE_NAME, null);
+    	}
 		return c;
     }
 
@@ -215,6 +253,17 @@ class Receiver implements Runnable {
 				SimpleDhtProvider.bq.put(obj.rowId);
 			} catch (InterruptedException e) {
 				Log.e(Listener.TAG, e.getMessage());
+			}
+		}
+		else if(obj.id.equals("query")) {
+			SimpleDhtProvider.query_flag = true;
+			SimpleDhtMainActivity.mContentResolver.query(SimpleDhtProvider.CONTENT_URI, null, obj.selection, null, obj.sortOrder);
+		}
+		else if(obj.id.equals("q_reply")) {
+			try {
+				SimpleDhtProvider.bq2.put(obj.Node_id);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
 			}
 		}
 	}

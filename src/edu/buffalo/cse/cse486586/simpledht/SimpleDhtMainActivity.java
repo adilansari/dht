@@ -43,7 +43,7 @@ public class SimpleDhtMainActivity extends Activity {
     public void LDump(View view) {
  //   	new Thread (new Runnable(){
  //   		public void run() {
-    			Cursor resultCursor = mContentResolver.query(SimpleDhtProvider.CONTENT_URI, null, null, null, null);
+    			Cursor resultCursor = mContentResolver.query(SimpleDhtProvider.CONTENT_URI, null, null, null, "local");
     	    	if (resultCursor.moveToFirst()) {
     	    		while (!resultCursor.isAfterLast()) {
 

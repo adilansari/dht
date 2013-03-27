@@ -8,13 +8,12 @@ import android.util.Log;
 public class Message implements Serializable {
 
 	private static final long serialVersionUID = 1L;
-	String id;
-	String Node_id;
+	String id, Node_id, selection, sortOrder, query_reply;
 	String[] nbors;
 	String cv[];
 	long rowId;
 	
-	// for 'join' message only
+	// for 'join' message or //q_reply by replacing Node_id
 	Message(String id, String Node_id) {
 		this.id= id;
 		this.Node_id= Node_id;
@@ -41,4 +40,13 @@ public class Message implements Serializable {
 		this.rowId = rowId;
 		this.Node_id = SimpleDhtMainActivity.Node_id;
 	}
+	
+	//query
+	Message (String id, String selection, String sortOrder){
+		this.id = id;
+		this.selection = selection;
+		this.selection = sortOrder;
+		this.Node_id = SimpleDhtMainActivity.Node_id;
+	}
+	
 }
