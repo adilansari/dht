@@ -24,21 +24,17 @@ public class SimpleDhtProvider extends ContentProvider {
 	public static final Uri CONTENT_URI = Uri.parse("content://"+ AUTHORITY + "/" + BASE_PATH);
 	static LinkedList list;
 	static SortedMap<String, String> map;
-	static ExecutorService pool = Executors.newSingleThreadExecutor();
-	static String suc, predec;
-	static boolean flag=false;
-	public static Socket socket;
-	//public static String Node_id;
+	static ExecutorService pool = Executors.newFixedThreadPool(2);
+	static String suc, predec, leader;
+	static boolean loop_flag=false, ins_flag =false;
+	public static BlockingQueue<Long> bq = new LinkedBlockingQueue<Long>(1);
 	
-    @Override
+	
     public int delete(Uri uri, String selection, String[] selectionArgs) {
-        // TODO Auto-generated method stub
         return 0;
     }
 
-    @Override
     public String getType(Uri uri) {
-        // TODO Auto-generated method stub
         return null;
     }
 
@@ -59,27 +55,37 @@ public class SimpleDhtProvider extends ContentProvider {
 		
     				if(hashKey.compareTo(hashNode) <= 0 && hashKey.compareTo(hashPre) > 0)
     					rowId= db.replace(myHelper.TABLE_NAME, myHelper.VALUE_FIELD, v);
-    				/*else if(flag) {
+    				else if(loop_flag) {
     					rowId= db.replace(myHelper.TABLE_NAME, myHelper.VALUE_FIELD, v);
-    					flag= !flag;
-    				}*/
+    					loop_flag= false;
+    				}
     				else {
-    					String firstNode= map.get(map.firstKey());
-    					if(SimpleDhtMainActivity.Node_id.equals(firstNode))
-    						flag = !flag;
+    					if(SimpleDhtMainActivity.Node_id.equals(leader))
+    						loop_flag = true;
     					
     					String[] pair = {key, (String)v.get(myHelper.VALUE_FIELD)};
     					Message obj = new Message("insert",pair);
     					pool.execute(new Send(obj, getPortAddr(suc)));
+    		
+    					rowId = bq.take();
+    					bq.clear();
     				}	
     			} catch (NoSuchAlgorithmException e) {
     				Log.e(TAG,e.getMessage());
-    			}
+    			} catch (InterruptedException e) {
+    				Log.e(TAG,e.getMessage());
+				}
 
     			if (rowId > 0) {
+    				if(ins_flag) {
+    					Message m = new Message("ins_reply", rowId);
+    					pool.execute(new Send(m, getPortAddr(predec)));
+    					ins_flag = false;
+    				}
+    				
     				Uri newUri = ContentUris.withAppendedId(CONTENT_URI, rowId);
     				getContext().getContentResolver().notifyChange(newUri, null);
-    				//Log.i(TAG, "Insertion success # " + Long.toString(rowId));
+    					
     				return newUri;
     			}
     			else {
@@ -88,15 +94,13 @@ public class SimpleDhtProvider extends ContentProvider {
     			}   	
     }
 
-    @Override
     public boolean onCreate() {
     	Log.v(TAG, "provider created");
     	map=new TreeMap<String, String>();
 		myDb = new myHelper(getContext());
 		myDb.getWritableDatabase();
     	
-    	
-		ExecutorService e= Executors.newSingleThreadExecutor();
+   		ExecutorService e= Executors.newSingleThreadExecutor();
 		e.execute(new Listener());
 		      
     	return true;
@@ -117,15 +121,15 @@ public class SimpleDhtProvider extends ContentProvider {
     		list.add(entry.getValue());
     	}
     	
-    	//ExecutorService e= Executors.newSingleThreadExecutor();
     	Node temp= list.root;
     	do {
     		String s= temp.data;
     		int portAddr= getPortAddr(s);
-    		String[] nb= new String[2];
+    		String[] nb= new String[3];
     		Node loc= list.get(s);
     		nb[0]= loc.prev.data;
     		nb[1]= loc.next.data;
+    		nb[2] = map.get(map.firstKey());
     		Message msg= new Message("update",SimpleDhtMainActivity.Node_id ,nb);
     		pool.execute(new Send(msg,portAddr));
     		temp=temp.next;
@@ -145,7 +149,8 @@ public class SimpleDhtProvider extends ContentProvider {
     public static void onUpdate(String[] a) {
     	suc= a[0];
     	predec = a[1];
-    	Log.d(TAG, "successor "+suc+" predecessor "+predec);
+    	leader = a[2];
+    	Log.d(TAG, "successor "+suc+" || predecessor "+predec+" || leader "+ leader);
     }
     
     @Override
@@ -184,78 +189,84 @@ class Receiver implements Runnable {
 
 	Socket sock= null;
 	Message obj;
-	ObjectInputStream in =null;
-	static final String TAG = "adil rcvr";
-	
-	Receiver (Socket s) {
-		this.sock= s;
+	//ExecutorService e= Executors.newSingleThreadExecutor();
+
+	Receiver (Message s) {
+		this.obj= s;
 	}
-	
+
 	public void run() {
-		try {
-			in =new ObjectInputStream(sock.getInputStream());
-			obj = (Message) in.readObject();
-			
-			Log.i(TAG, "recvd msg: "+ obj.Node_id + obj.id);
-			
-			if (obj.id.equals("join")) {
-				SimpleDhtProvider.onJoin(obj.Node_id);
+		Log.i("adil rcvr", "recvd msg: "+ obj.Node_id + obj.id);
+		if (obj.id.equals("join")) {
+			SimpleDhtProvider.onJoin(obj.Node_id);
+		}
+		else if (obj.id.equals("update")) {
+			SimpleDhtProvider.onUpdate(obj.nbors);
+		}
+		else if (obj.id.equals("insert")) {
+			ContentValues val = new ContentValues();
+			val.put(myHelper.KEY_FIELD, obj.cv[0]);
+			val.put(myHelper.VALUE_FIELD, obj.cv[1]);
+			SimpleDhtProvider.ins_flag = true;
+			SimpleDhtMainActivity.mContentResolver.insert(SimpleDhtProvider.CONTENT_URI, val);
+		}
+		else if(obj.id.endsWith("ins_reply")) {
+			try {
+				SimpleDhtProvider.bq.put(obj.rowId);
+			} catch (InterruptedException e) {
+				Log.e(Listener.TAG, e.getMessage());
 			}
-			else if (obj.id.equals("update")) {
-				SimpleDhtProvider.onUpdate(obj.nbors);
-			}
-			else if (obj.id.equals("insert")) {
-				ContentValues val = new ContentValues();
-				val.put(myHelper.KEY_FIELD, obj.cv[0]);
-				val.put(myHelper.VALUE_FIELD, obj.cv[1]);
-				SimpleDhtMainActivity.mContentResolver.insert(SimpleDhtProvider.CONTENT_URI, val);
-			}
-		} catch (ClassNotFoundException e) {
-			Log.e(TAG, ""+e.getMessage());
-		} catch (StreamCorruptedException e) {
-			Log.e(TAG, ""+e.getMessage());
-		} catch (IOException e) {
-			Log.e(TAG, ""+e.getMessage());
-		} finally {
-			if (in!= null)
-				try {
-					in.close();
-				} catch (IOException e) {
-					Log.e(TAG, ""+e.getMessage());
-				}
-			if(sock!=null)
-				try {
-					sock.close();
-				} catch (IOException e) {
-					Log.e(TAG, ""+e.getMessage());
-				}	
 		}
 	}
 }
 
 class Listener implements Runnable {
-	
+
 	static final String TAG = "adil listen";
 	static final int recvPort= 10000;
-	ExecutorService e= Executors.newSingleThreadExecutor();
-	
+	ExecutorService e= Executors.newFixedThreadPool(2);
+
 	public void run() {
 		Socket sock1= null;
+		ObjectInputStream in =null;
 		ServerSocket servSocket= null;
 		try {
 			servSocket= new ServerSocket(recvPort);
 			Log.v(TAG, "Server Socket port: "+Integer.toString(servSocket.getLocalPort()));
 		} catch (IOException e) {
 			Log.e(TAG, ""+e.getMessage());
-			e.printStackTrace();
 		}
-		
+
 		while(true) {
 			try {
 				sock1= servSocket.accept();
-				e.execute(new Receiver(sock1)); //replace where to send this object
-			} catch (IOException e) {
+				in =new ObjectInputStream(sock1.getInputStream());
+				Message obj;
+				try {
+					obj = (Message) in.readObject();
+					e.execute(new Receiver(obj)); //replace where to send this object
+				} catch (ClassNotFoundException e) {
+					Log.e(TAG, e.getMessage());
+				}
+			} 
+
+			catch (IOException e) {
 				Log.e(TAG, ""+e.getMessage());
+				e.printStackTrace();
+			}
+			finally {
+				if (in!= null)
+					try {
+						in.close();
+					} catch (IOException e) {
+						Log.e(TAG, ""+e.getMessage());
+					}
+				if(sock1!=null)
+					try {
+						sock1.close();
+					} catch (IOException e) {
+						Log.e(TAG, ""+e.getMessage());
+					}	
 			}
 		}
 	}

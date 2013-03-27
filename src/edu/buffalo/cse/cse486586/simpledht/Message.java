@@ -12,6 +12,7 @@ public class Message implements Serializable {
 	String Node_id;
 	String[] nbors;
 	String cv[];
+	long rowId;
 	
 	// for 'join' message only
 	Message(String id, String Node_id) {
@@ -28,10 +29,16 @@ public class Message implements Serializable {
 	}
 	
 	//insert message
-	
 	Message(String id, String[] cv) {
 		this.id= id;
 		this.cv = cv;
+		this.Node_id = SimpleDhtMainActivity.Node_id;
 	}
 
+	//insert reply
+	Message (String id, long rowId) {
+		this.id =id;
+		this.rowId = rowId;
+		this.Node_id = SimpleDhtMainActivity.Node_id;
+	}
 }
