@@ -45,7 +45,7 @@ public class SimpleDhtProvider extends ContentProvider {
 
     			db = myDb.getWritableDatabase();
     			String hashKey,hashNode,hashPre;
-    			long rowId=1;
+    			long rowId=0;
     			String key =(String) v.get(myHelper.KEY_FIELD);
 		
     			try {
@@ -55,13 +55,13 @@ public class SimpleDhtProvider extends ContentProvider {
 		
     				if(hashKey.compareTo(hashNode) <= 0 && hashKey.compareTo(hashPre) > 0)
     					rowId= db.replace(myHelper.TABLE_NAME, myHelper.VALUE_FIELD, v);
-    				else if(loop_flag) {
+    				else if(SimpleDhtMainActivity.Node_id.equals(leader) && (hashKey.compareTo(hashNode) <= 0 || hashKey.compareTo(hashPre) > 0)) {
     					rowId= db.replace(myHelper.TABLE_NAME, myHelper.VALUE_FIELD, v);
-    					loop_flag= false;
+//    					loop_flag= false;
     				}
     				else {
-    					if(SimpleDhtMainActivity.Node_id.equals(leader))
-    						loop_flag = true;
+//    					if(SimpleDhtMainActivity.Node_id.equals(leader))
+//    						loop_flag = true;
     					
     					String[] pair = {key, (String)v.get(myHelper.VALUE_FIELD)};
     					Message obj = new Message("insert",pair);
@@ -210,7 +210,7 @@ class Receiver implements Runnable {
 			SimpleDhtProvider.ins_flag = true;
 			SimpleDhtMainActivity.mContentResolver.insert(SimpleDhtProvider.CONTENT_URI, val);
 		}
-		else if(obj.id.endsWith("ins_reply")) {
+		else if(obj.id.equals("ins_reply")) {
 			try {
 				SimpleDhtProvider.bq.put(obj.rowId);
 			} catch (InterruptedException e) {
