@@ -41,24 +41,36 @@ public class SimpleDhtMainActivity extends Activity {
     }
     
     public void LDump(View view) {
- //   	new Thread (new Runnable(){
- //   		public void run() {
-    			Cursor resultCursor = mContentResolver.query(SimpleDhtProvider.CONTENT_URI, null, null, null, "local");
-    	    	if (resultCursor.moveToFirst()) {
-    	    		while (!resultCursor.isAfterLast()) {
-
-    	    			int keyIndex = resultCursor.getColumnIndex("key");
-    	                int valueIndex = resultCursor.getColumnIndex("value");
-    	    			String returnKey = resultCursor.getString(keyIndex);
-    	                String returnValue = resultCursor.getString(valueIndex);
-    	                updateTextView(returnKey+" "+returnValue);
-    	    			resultCursor.moveToNext();
-    	    		}
+    	SimpleDhtProvider.dump_flag = true;
+    	Cursor resultCursor = mContentResolver.query(SimpleDhtProvider.CONTENT_URI, null, null, null, "local");
+    	if (resultCursor.moveToFirst()) {
+    	    while (!resultCursor.isAfterLast()) {
+    	    	int keyIndex = resultCursor.getColumnIndex("key");
+    	        int valueIndex = resultCursor.getColumnIndex("value");
+    	    	String returnKey = resultCursor.getString(keyIndex);
+    	        String returnValue = resultCursor.getString(valueIndex);
+    	        updateTextView(returnKey+" "+returnValue);
+    	        resultCursor.moveToNext();
     	    	}
-//    		}
-//    	}).start();
+    	    }
+    	SimpleDhtProvider.dump_flag = false;
     }
     
+    public void GDump(View view) {
+    	SimpleDhtProvider.dump_flag = true;
+    	Cursor resultCursor = mContentResolver.query(SimpleDhtProvider.CONTENT_URI, null, null, null, "global");
+    	if (resultCursor.moveToFirst()) {
+    	    while (!resultCursor.isAfterLast()) {
+    	    	int keyIndex = resultCursor.getColumnIndex("key");
+    	        int valueIndex = resultCursor.getColumnIndex("value");
+    	    	String returnKey = resultCursor.getString(keyIndex);
+    	        String returnValue = resultCursor.getString(valueIndex);
+    	        updateTextView(returnKey+" "+returnValue);
+    	        resultCursor.moveToNext();
+    	    	}
+    	    }
+    	SimpleDhtProvider.dump_flag = false;
+    }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {

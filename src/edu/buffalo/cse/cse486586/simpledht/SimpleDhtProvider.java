@@ -27,10 +27,10 @@ public class SimpleDhtProvider extends ContentProvider {
 	static SortedMap<String, String> map;
 	static ExecutorService pool = Executors.newFixedThreadPool(2);
 	static String suc, predec, leader;
-	static boolean query_flag=false, ins_flag =false;
+	static boolean query_flag=false, ins_flag =false, dump_flag = false;
 	public static BlockingQueue<Long> bq = new LinkedBlockingQueue<Long>(1);
 	public static BlockingQueue<String> bq2 = new LinkedBlockingQueue<String>(1);
-	
+	public static BlockingQueue<HashMap<String, String>> bq_map = new LinkedBlockingQueue<HashMap<String, String>>(1);
     public int delete(Uri uri, String selection, String[] selectionArgs) {
         return 0;
     }
@@ -160,7 +160,7 @@ public class SimpleDhtProvider extends ContentProvider {
     	
     	db= myDb.getReadableDatabase();
     	Cursor c;
-    	MatrixCursor mc = null;
+    	MatrixCursor mc = new MatrixCursor(new String[]{myHelper.KEY_FIELD,myHelper.VALUE_FIELD});
     	
     	if(selection != null) {
     		c= db.rawQuery("select * from "+myHelper.TABLE_NAME+" where key like '"+selection+"'", null);
@@ -190,11 +190,8 @@ public class SimpleDhtProvider extends ContentProvider {
     			query_flag = false;	
     		}
     		
-    		mc = new MatrixCursor(new String[]{myHelper.KEY_FIELD,myHelper.VALUE_FIELD});
-    		//mc.addRow(new String[]{selection,val});
     		mc.newRow().add(selection).add(val);
     		System.out.print(false);
-    	//build a matrix cursor to be returned
     	}
     	else if( selection == null && sortOrder.equals("local")) {
     		c= db.rawQuery("select * from "+myHelper.TABLE_NAME, null);
@@ -202,13 +199,58 @@ public class SimpleDhtProvider extends ContentProvider {
     	}
     	else {
     		c= db.rawQuery("select * from "+myHelper.TABLE_NAME, null);
+    		if (c.moveToFirst()) {
+        	    while (!c.isAfterLast()) {
+        	    	int keyIndex = c.getColumnIndex("key");
+        	        int valueIndex = c.getColumnIndex("value");
+        	    	String returnKey = c.getString(keyIndex);
+        	        String returnValue = c.getString(valueIndex);
+        	        mc.newRow().add(returnKey).add(returnValue);
+        	        c.moveToNext();
+        	    	}
+        	    }
+    		query_flag = true;
+    		Message chk = new Message("chk","check_msg");
+    		pool.execute(new Send(chk, getPortAddr(suc)));
+    		try {
+				if(bq2.take().equals("false")) {
+					bq2.clear();
+					Message q = new Message("query", selection, sortOrder);
+    				pool.execute(new Send(q, getPortAddr(suc)));				//send query
+					HashMap<String, String> hm = bq_map.take();					//wait for map to arrive
+					bq_map.clear();
+					Set<String> set = hm.keySet();
+					Iterator<String> itr = set.iterator();						//parse from map to matrixcursor
+					while(itr.hasNext()) {
+						String k = (String) itr.next();
+						String v = hm.get(k);
+						mc.newRow().add(k).add(v);
+					}
+					query_flag = false;
+				}
+				if (!dump_flag) {
+					if(mc.moveToFirst()) {
+						HashMap<String,String> hm = new HashMap<String,String>();	//matrix cursor to map
+						while(!mc.isAfterLast()) {
+							int keyIndex = mc.getColumnIndex("key");
+							int valueIndex = mc.getColumnIndex("value");
+							String returnKey = mc.getString(keyIndex);
+							String returnValue = mc.getString(valueIndex);
+							hm.put(returnKey, returnValue);
+							mc.moveToNext();
+						}
+						Message d = new Message("dump", hm);								//send map to predec
+						pool.execute(new Send(d, getPortAddr(predec)));
+					}
+				}
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
     	}
 		return mc;
     }
 
-    @Override
     public int update(Uri uri, ContentValues values, String selection, String[] selectionArgs) {
-        // TODO Auto-generated method stub
         return 0;
     }
 
@@ -227,7 +269,6 @@ class Receiver implements Runnable {
 
 	Socket sock= null;
 	Message obj;
-	//ExecutorService e= Executors.newSingleThreadExecutor();
 
 	Receiver (Message s) {
 		this.obj= s;
@@ -264,6 +305,23 @@ class Receiver implements Runnable {
 				SimpleDhtProvider.bq2.put(obj.Node_id);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
+			}
+		}
+		else if(obj.id.equals("chk")) {
+			SimpleDhtProvider.pool.execute(new Send(new Message("chk_reply",Boolean.toString(SimpleDhtProvider.query_flag)), SimpleDhtProvider.getPortAddr(SimpleDhtProvider.predec)));
+		}
+		else if(obj.id.equals("chk_reply")) {
+			try {
+				SimpleDhtProvider.bq2.put(obj.Node_id);
+			} catch (InterruptedException e) {
+				Log.e(Listener.TAG, e.getMessage());
+			}
+		}
+		else if(obj.id.equals("dump")) {
+			try {
+				SimpleDhtProvider.bq_map.put(obj.map);
+			} catch (InterruptedException e) {
+				Log.e(Listener.TAG, e.getMessage());
 			}
 		}
 	}

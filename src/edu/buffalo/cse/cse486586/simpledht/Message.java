@@ -1,6 +1,7 @@
 package edu.buffalo.cse.cse486586.simpledht;
 
 import java.io.*;
+import java.util.HashMap;
 
 import android.content.ContentValues;
 import android.util.Log;
@@ -12,8 +13,9 @@ public class Message implements Serializable {
 	String[] nbors;
 	String cv[];
 	long rowId;
+	HashMap<String, String> map;
 	
-	// for 'join' message or //q_reply by replacing Node_id
+	// for 'join' message or //q_reply by replacing Node_id //check/reply
 	Message(String id, String Node_id) {
 		this.id= id;
 		this.Node_id= Node_id;
@@ -47,6 +49,12 @@ public class Message implements Serializable {
 		this.selection = selection;
 		this.sortOrder = sortOrder;
 		this.Node_id = SimpleDhtMainActivity.Node_id;
+	}
+	
+	//dump_reply
+	Message(String id, HashMap<String, String> map) {
+		this.id= id;
+		this.map = map;
 	}
 	
 }
