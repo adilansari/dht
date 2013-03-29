@@ -39,4 +39,4 @@
 
 [2] Single best resource on Android, [Android dev](http://developer.android.com)
 
-[3] Link to Chord wiki, [here](http://en.wikipedia.org/wiki/Chord_(peer-to-peer))
+[3] Link to Chord repository on Github, [here](https://github.com/sit/dht/wiki)
