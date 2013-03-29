@@ -44,55 +44,51 @@ public class SimpleDhtProvider extends ContentProvider {
     	//pass on algorithm here
     	final ContentValues v = new ContentValues(values);
 
-    			db = myDb.getWritableDatabase();
-    			String hashKey,hashNode,hashPre;
-    			long rowId=0;
-    			String key =(String) v.get(myHelper.KEY_FIELD);
+    	db = myDb.getWritableDatabase();
+    	String hashKey,hashNode,hashPre;
+    	long rowId=0;
+    	String key =(String) v.get(myHelper.KEY_FIELD);
 		
-    			try {
-    				hashKey = genHash(key);
-    				hashNode = genHash(SimpleDhtMainActivity.Node_id);
-    				hashPre= genHash(predec);
+    	try {
+    		hashKey = genHash(key);
+    		hashNode = genHash(SimpleDhtMainActivity.Node_id);
+    		hashPre= genHash(predec);
 		
-    				if(hashKey.compareTo(hashNode) <= 0 && hashKey.compareTo(hashPre) > 0)
-    					rowId= db.replace(myHelper.TABLE_NAME, myHelper.VALUE_FIELD, v);
-    				else if(SimpleDhtMainActivity.Node_id.equals(leader) && (hashKey.compareTo(hashNode) <= 0 || hashKey.compareTo(hashPre) > 0)) {
-    					rowId= db.replace(myHelper.TABLE_NAME, myHelper.VALUE_FIELD, v);
-//    					loop_flag= false;
-    				}
-    				else {
-//    					if(SimpleDhtMainActivity.Node_id.equals(leader))
-//    						loop_flag = true;
-    					
-    					String[] pair = {key, (String)v.get(myHelper.VALUE_FIELD)};
-    					Message obj = new Message("insert",pair);
-    					pool.execute(new Send(obj, getPortAddr(suc)));
+    		if(hashKey.compareTo(hashNode) <= 0 && hashKey.compareTo(hashPre) > 0)
+    			rowId= db.replace(myHelper.TABLE_NAME, myHelper.VALUE_FIELD, v);
+    		else if(SimpleDhtMainActivity.Node_id.equals(leader) && (hashKey.compareTo(hashNode) <= 0 || hashKey.compareTo(hashPre) > 0)) {
+    			rowId= db.replace(myHelper.TABLE_NAME, myHelper.VALUE_FIELD, v);
+    		}
+    		else {
+    			String[] pair = {key, (String)v.get(myHelper.VALUE_FIELD)};
+    			Message obj = new Message("insert",pair);
+    			pool.execute(new Send(obj, getPortAddr(suc)));
     		
-    					rowId = bq.take();
-    					bq.clear();
-    				}	
-    			} catch (NoSuchAlgorithmException e) {
-    				Log.e(TAG,e.getMessage());
-    			} catch (InterruptedException e) {
-    				Log.e(TAG,e.getMessage());
-				}
+    			rowId = bq.take();
+    			bq.clear();
+    		}	
+   		} catch (NoSuchAlgorithmException e) {
+   			Log.e(TAG,e.getMessage());
+   		} catch (InterruptedException e) {
+   			Log.e(TAG,e.getMessage());
+		}
 
-    			if (rowId > 0) {
-    				if(ins_flag) {
-    					Message m = new Message("ins_reply", rowId);
-    					pool.execute(new Send(m, getPortAddr(predec)));
-    					ins_flag = false;
-    				}
-    				
-    				Uri newUri = ContentUris.withAppendedId(CONTENT_URI, rowId);
-    				getContext().getContentResolver().notifyChange(newUri, null);
+    	if (rowId > 0) {
+    		if(ins_flag) {
+    			Message m = new Message("ins_reply", rowId);
+    			pool.execute(new Send(m, getPortAddr(predec)));
+    			ins_flag = false;
+    		}
+    			
+    		Uri newUri = ContentUris.withAppendedId(CONTENT_URI, rowId);
+    		getContext().getContentResolver().notifyChange(newUri, null);
     					
-    				return newUri;
-    			}
-    			else {
-    				Log.e(TAG, "Insert to db failed");
-    				return null;
-    			}   	
+    		return newUri;
+    	}
+    	else {
+    		Log.e(TAG, "Insert to db failed");
+    		return null;
+    	}   	
     }
 
     public boolean onCreate() {
