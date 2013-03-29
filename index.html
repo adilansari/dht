@@ -1,0 +1,93 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <title>Dht by adilansari</title>
+
+    <link rel="stylesheet" href="stylesheets/styles.css">
+    <link rel="stylesheet" href="stylesheets/pygment_trac.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+  </head>
+  <body>
+    <div class="wrapper">
+      <header>
+        <h1>Dht</h1>
+        <p>Distributed Hash Table based on Chord design</p>
+
+        <p class="view"><a href="https://github.com/adilansari/dht">View the Project on GitHub <small>adilansari/dht</small></a></p>
+
+
+        <ul>
+          <li><a href="https://github.com/adilansari/dht/zipball/master">Download <strong>ZIP File</strong></a></li>
+          <li><a href="https://github.com/adilansari/dht/tarball/master">Download <strong>TAR Ball</strong></a></li>
+          <li><a href="https://github.com/adilansari/dht">View On <strong>GitHub</strong></a></li>
+        </ul>
+      </header>
+      <section>
+        <h1>Distributed Hash Table</h1>
+
+<h1></h1>
+
+<hr><ul>
+<li>Simple Key-Value storage based on Chord design.</li>
+<li>
+<p>Simplified version of Chord, covers three things:</p>
+
+<ul>
+<li>ID space partitioning/re-partitioning.</li>
+<li>Ring based routing</li>
+<li>Node joins</li>
+</ul>
+</li>
+<li><p>SHA-1 hash function is used to lexically arrange nodes in a ring and find the location for a particular key to be stored.</p></li>
+<li><p>Each node maintains a successor and predecessor pointer for nodes in the ring.</p></li>
+<li>
+<p>Content Provider is NoSQL storage that:</p>
+
+<ul>
+<li>The first column should be named as “key”. This column is used to store all keys. </li>
+<li>The first column should be named as “value”. This column is used to store all values.</li>
+</ul>
+</li>
+<li><p>However, Node failures, concurrent node-joins and finger tables are not implemented.</p></li>
+</ul><h3>PTest</h3>
+
+<ul>
+<li>Inserts 50 arbitrary key-value pairs in the DHT and queries to check if they exist and returns success/failure messages.</li>
+</ul><h3>LDump</h3>
+
+<ul>
+<li>When touched, this button dumps and displays all the  pairs stored in your local partition of the node.</li>
+</ul><h3>GDump</h3>
+
+<ul>
+<li>When touched, this button dumps and displays all the  pairs stored in your whole DHT.</li>
+</ul><h2>References</h2>
+
+<p>[1] Read about Chord <a href="http://conferences.sigcomm.org/sigcomm/2001/p12-stoica.pdf">here</a></p>
+
+<p>[2] Single best resource on Android, <a href="http://developer.android.com">Android dev</a></p>
+
+<p>[3] Link to Chord repository on Github, <a href="https://github.com/sit/dht/wiki">here</a></p>
+
+<hr><h2>Contact</h2>
+
+<ul>
+<li><a href="mailto:%20me@adilansari.com">E-mail</a></li>
+<li><a href="http://twitter.com/adilansari">@adilansari</a></li>
+<li><a href="http://www.adilansari.com">HomePage</a></li>
+</ul>
+      </section>
+      <footer>
+        <p>This project is maintained by <a href="https://github.com/adilansari">adilansari</a></p>
+        <p><small>Hosted on GitHub Pages &mdash; Theme by <a href="https://github.com/orderedlist">orderedlist</a></small></p>
+      </footer>
+    </div>
+    <script src="javascripts/scale.fix.js"></script>
+    
+  </body>
+</html>
