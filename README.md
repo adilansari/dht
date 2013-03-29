@@ -1,28 +1,42 @@
-# The goal of this app is simple: enabling two Android devices to send messages to each other.
+# Distributed Hash Table
+=========================================================
+***
+* Simple Key-Value storage based on Chord design.
+* Simplified version of Chord, covers three things:
+    * ID space partitioning/re-partitioning.
+    * Ring based routing
+    * Node joins
 
-There is only one text box on screen where a user of the device can write a text message to the other device.
+* SHA-1 hash function is used to lexically arrange nodes in a ring and find the location for a particular key to be stored.
+* Each node maintains a successor and predecessor pointer for nodes in the ring.
+* Content Provider is NoSQL storage that:
+    - The first column should be named as “key”. This column is used to store all keys. 
+    - The first column should be named as “value”. This column is used to store all values.
 
-The other device should be able to display on screen what was received. And vice versa. Used Java Socket API. All communication over TCP. Assumed that the size of a message will never exceed 128 bytes (characters).
 
-In the app, we can open only one server socket that listens on port 10000 regardless of which AVD your app runs on.
+* However, Node failures, concurrent node-joins and finger tables are not implemented.
 
-The app on avd0 can connect to the listening server socket of the app on avd1 by connecting to <ip>:<port> == 10.0.2.2:11112.
 
-The app on avd1 can connect to the listening server socket of the app on avd0 by connecting to <ip>:<port> == 10.0.2.2:11108.
+### PTest
+
+- Inserts 50 arbitrary key-value pairs in the DHT and queries to check if they exist and returns success/failure messages.
+
+
+### LDump
+
+- When touched, this button dumps and displays all the <key, value> pairs stored in your local partition of the node.
+
+
+### GDump
+
+- When touched, this button dumps and displays all the <key, value> pairs stored in your whole DHT.
+
 
 
 ## References
 
-[1] More project details [here](https://docs.google.com/document/d/1JqBqZChFWzbnTXgbYB8Z6l9IRlzt8c0loIwa6ymkPps/pub)
+[1] Read about Chord [here](http://conferences.sigcomm.org/sigcomm/2001/p12-stoica.pdf)
 
 [2] Single best resource on Android, [Android dev](http://developer.android.com)
 
-
-## Screenshots
-
-Product demo:
-
-
-![Emulator-1](https://raw.github.com/adilansari/Android-Messenger/master/screen/Emulator-1.png)
-
-![Emulator-2](https://raw.github.com/adilansari/Android-Messenger/master/screen/Emulator-2.png)
+[3] Link to Chord wiki, [here](http://en.wikipedia.org/wiki/Chord_(peer-to-peer))
